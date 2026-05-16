@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { 
+            --primary: #4e73df; 
+            --secondary: #1cc88a; 
+            --warning: #f6c23e; 
+            --dark: #5a5c69; 
+            --light: #f8f9fc; 
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+        }
+
+        body { font-family: 'Poppins', sans-serif; background: var(--light); margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        header { background: var(--gradient); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        
+        .container { display: grid; grid-template-columns: 1fr 300px; gap: 20px; padding: 20px; max-width: 1200px; margin: auto; width: 100%; box-sizing: border-box; }
+        
+        /* Area Soal */
+        .exam-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); min-height: 450px; }
+        
+        .q-image-container { text-align: center; margin-bottom: 20px; background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 15px; display: none; }
+        .q-image-container img { max-width: 100%; max-height: 350px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+        .question-text { font-size: 1.15rem; font-weight: 500; margin-bottom: 20px; color: var(--dark); line-height: 1.6; }
+        
+        textarea { width: 100%; height: 180px; padding: 15px; border: 2px solid #e3e6f0; border-radius: 10px; font-family: inherit; font-size: 1rem; resize: none; box-sizing: border-box; transition: 0.3s; }
+        textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+        
+        /* Dropdown & Input Styling */
+        .custom-input { 
+            width: 100%; padding: 12px; margin-bottom: 15px; 
+            border: 2px solid #ddd; border-radius: 10px; 
+            box-sizing: border-box; font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        select.custom-input {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234e73df' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            cursor: pointer;
+        }
+
+        .custom-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 8px rgba(78, 115, 223, 0.2); }
+
+        /* Navigasi */
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 25px; gap: 10px; }
+        button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn-prev { background: #eaecf4; color: var(--dark); }
+        .btn-next { background: var(--primary); color: white; }
+        .btn-flag { background: var(--warning); color: white; }
+        .btn-submit { background: var(--secondary); color: white; width: 100%; margin-top: 15px; }
+        
+        /* Sidebar */
+        .sidebar { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); height: fit-content; }
+        .grid-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
+        .grid-item { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #eaecf4; border-radius: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; position: relative; }
+        .grid-item.active { border: 2px solid var(--primary); color: var(--primary); background: white; }
+        .grid-item.answered { background: var(--secondary); color: white; }
+        .grid-item.flagged::after { content: "\f024"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; top: -5px; right: -5px; color: var(--warning); font-size: 10px; }
+
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } .sidebar { order: -1; } }
+    </style>
+</head>
+<body>
+
+<div id="auth-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--gradient); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 40px; border-radius: 20px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.2);">
+        <h2 style="color: var(--primary); margin-bottom: 5px;">Data Peserta</h2>
+        <p style="color: #888; font-size: 0.9rem; margin-bottom: 25px;">Silakan lengkapi data untuk memulai ujian</p>
+        
+        <input type="text" id="student-name" class="custom-input" placeholder="Nama Lengkap">
+        
+        <select id="student-class" class="custom-input">
+            <option value="" disabled selected>-- Pilih Kelas --</option>
+            <option value="VII Al Kindi">VII AK</option>
+            <option value="VII Ibnu Thufail">VII IT</option>
+            <option value="VII Tahfidz">VII Tahfidz</option>
+            <option value="VIII Al Farabi">VIII AF</option>
+            <option value="VIII Ibnu Khaldun">VIII IK</option>
+            <option value="VIII Tahfidz">VIII Tahfidz</option>
+            <option value="X SA">X SA</option>
+            <option value="X Tahfidz">X Tahfidz</option>
+            <option value="XI SF">XI SF</option>
+            <option value="XI AF">XI AF</option>
+            <option value="XI Tahfidz">XI Tahfidz</option>
+        </select>
+
+        <select id="student-subject" class="custom-input">
+            <option value="" disabled selected>-- Pilih Mata Pelajaran --</option>
+            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+            <option value="Matematika">Matematika</option>
+            <option value="IPA">IPA</option>
+            <option value="IPS">IPS</option>
+            <option value="Bahasa Inggris">Bahasa Inggris</option>
+            <option value="PAI">PAI</option>
+            <option value="PKn">PKn</option>
+            <option value="IPA">Bahasa Daerah</option>
+            <option value="IPS">Bahasa Arab</option>
+        </select>
+
+        <button onclick="startExam()" style="width: 100%; background: var(--gradient); color: white; padding: 15px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 1rem; margin-top: 10px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">MASUK UJIAN</button>
+    </div>
+</div>
+
+<header>
+    <h2 id="header-title" style="margin:0; font-size: 1rem;">Ujian Online</h2>
+    <div id="timer" style="font-weight: 600; background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px;">90:00</div>
+</header>
+
+<div class="container">
+    <main class="exam-card">
+        <div id="question-container">
+            <span id="q-number" style="color: var(--primary); font-weight: bold; margin-bottom: 10px; display: block;"></span>
+            
+            <div id="q-image-wrap" class="q-image-container">
+                <img id="q-image" src="" alt="Gambar Soal">
+            </div>
+
+            <p class="question-text" id="q-text">Memuat soal...</p>
+            <textarea id="answer-input" oninput="saveAnswer(); renderGrid()" placeholder="Ketik jawaban Anda di sini..."></textarea>
+        </div>
+        
+        <div class="nav-buttons">
+            <button class="btn-prev" id="btn-prev" onclick="changeQuestion(-1)">Sebelumnya</button>
+            <button class="btn-flag" onclick="toggleFlag()"><i class="fas fa-flag"></i> Ragu</button>
+            <button class="btn-next" id="btn-next" onclick="changeQuestion(1)">Selanjutnya</button>
+        </div>
+    </main>
+    
+    <aside class="sidebar">
+        <h4 style="margin:0 0 10px 0">Navigasi Soal</h4>
+        <div class="grid-nav" id="grid-nav"></div>
+        <button class="btn-submit" id="btn-submit-final" onclick="submitExam()">Selesai Ujian</button>
+    </aside>
+</div>
+
+<script src="soal.js"></script>
+
+<script>
+    let questions = [];
+    let userAnswers = [];
+    let flagged = [];
+    let currentIdx = 0;
+    let timeLeft = 90 * 60;
+    let studentData = { nama: "", kelas: "", mapel: "" };
+
+    function startExam() {
+        const name = document.getElementById('student-name').value;
+        const cls = document.getElementById('student-class').value;
+        const subj = document.getElementById('student-subject').value;
+
+        if (!name || !cls || !subj) return alert("Silakan lengkapi data diri!");
+        
+        if (typeof daftarSoal === 'undefined') {
+            return alert("File soal.js tidak ditemukan!");
+        }
+
+        questions = daftarSoal;
+        userAnswers = new Array(questions.length).fill("");
+        flagged = new Array(questions.length).fill(false);
+        studentData = { nama: name, kelas: cls, mapel: subj };
+
+        document.getElementById('auth-modal').style.display = 'none';
+        document.getElementById('header-title').innerText = `${studentData.mapel} | ${studentData.nama}`;
+        
+        init();
+    }
+
+    function init() {
+        renderGrid();
+        showQuestion();
+        setInterval(updateTimer, 1000);
+    }
+
+    function showQuestion() {
+        const q = questions[currentIdx];
+        const qWrap = document.getElementById('q-image-wrap');
+        const qImg = document.getElementById('q-image');
+
+        document.getElementById('q-number').innerText = `SOAL NOMOR ${currentIdx + 1}`;
+        document.getElementById('q-text').innerText = q.text;
+        document.getElementById('answer-input').value = userAnswers[currentIdx];
+
+        if (q.image && q.image.trim() !== "") {
+            qImg.src = q.image;
+            qWrap.style.display = 'block';
+        } else {
+            qWrap.style.display = 'none';
+            qImg.src = "";
+        }
+
+        document.getElementById('btn-prev').disabled = (currentIdx === 0);
+        document.getElementById('btn-next').innerText = (currentIdx === questions.length - 1) ? "Selesai" : "Selanjutnya";
+        
+        updateHighlight();
+    }
+
+    function saveAnswer() {
+        userAnswers[currentIdx] = document.getElementById('answer-input').value;
+    }
+
+    function changeQuestion(step) {
+        saveAnswer();
+        if (currentIdx + step >= 0 && currentIdx + step < questions.length) {
+            currentIdx += step;
+            showQuestion();
+            renderGrid();
+        } else if (currentIdx + step === questions.length) {
+            submitExam();
+        }
+    }
+
+    function toggleFlag() {
+        flagged[currentIdx] = !flagged[currentIdx];
+        renderGrid();
+    }
+
+    function updateHighlight() {
+        document.querySelectorAll('.grid-item').forEach((el, i) => {
+            el.classList.toggle('active', i === currentIdx);
+        });
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('grid-nav');
+        grid.innerHTML = "";
+        questions.forEach((_, i) => {
+            const div = document.createElement('div');
+            const answered = userAnswers[i] && userAnswers[i].trim() !== "";
+            div.className = `grid-item ${answered ? 'answered' : ''} ${flagged[i] ? 'flagged' : ''} ${i === currentIdx ? 'active' : ''}`;
+            div.innerText = i + 1;
+            div.onclick = () => { saveAnswer(); currentIdx = i; showQuestion(); renderGrid(); };
+            grid.appendChild(div);
+        });
+    }
+
+    function updateTimer() {
+        let mins = Math.floor(timeLeft / 60);
+        let secs = timeLeft % 60;
+        document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        if (timeLeft <= 0) submitExam(true);
+        timeLeft--;
+    }
+
+   async function submitExam(auto = false) {
+        saveAnswer();
+        const btn = document.getElementById('btn-submit-final');
+
+        // Mencari nomor soal yang belum diisi
+        const belumDijawab = userAnswers
+            .map((ans, i) => (ans.trim() === "" ? i + 1 : null))
+            .filter(n => n !== null);
+
+        // LOGIKA VALIDASI: Jika tidak otomatis (karena waktu habis) dan masih ada soal kosong
+        if (!auto && belumDijawab.length > 0) {
+            alert(`Peringatan: Anda belum menjawab soal nomor: [${belumDijawab.join(", ")}]. \n\nSemua soal wajib diisi sebelum mengirim jawaban!`);
+            
+            // Opsional: Arahkan siswa ke soal pertama yang kosong
+            currentIdx = belumDijawab[0] - 1;
+            showQuestion();
+            renderGrid();
+            return; // Berhenti di sini, tidak mengirim data
+        }
+
+        // Jika sudah terisi semua atau karena waktu habis (auto submit)
+        if (!auto) {
+            if (!confirm("Yakin ingin mengumpulkan semua jawaban? Tindakan ini tidak dapat dibatalkan.")) return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Mengirim...";
+
+        try {
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyMb_l1Vly7qGsfw1_2Of6Q5144uC1bn5cBe-KXhyD6CSsPJ5meCkTrTxCbVpk0FOCJ7A/exec";
+            
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nama: studentData.nama,
+                    kelas: studentData.kelas,
+                    mapel: studentData.mapel,
+                    jawaban: userAnswers
+                })
+            });
+
+            alert("Jawaban Berhasil Terkirim! Terima kasih.");
+            location.reload();
+        } catch (e) {
+            alert("Gagal mengirim. Cek koneksi internet Anda.");
+            btn.disabled = false;
+            btn.innerHTML = "Selesai Ujian";
+        }
+    }
+</script>
+</body>
+</html>
